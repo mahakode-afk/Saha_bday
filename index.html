@@ -31,6 +31,10 @@
 </style>
 </head>
 <body>
+<button id="muteBtn" aria-label="Mute music" style="position:fixed; top:16px; right:16px; z-index:50; width:52px; height:52px; border-radius:50%; border:none; background:#ff6fa5; box-shadow:0 4px 14px rgba(255,111,165,0.5); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;">
+  <svg id="muteIconOn" width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3z" fill="#ffffff"/><path d="M16 8.5a4.5 4.5 0 0 1 0 7" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M18.5 6a8 8 0 0 1 0 12" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7"/></svg>
+  <svg id="muteIconOff" width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" style="display:none;"><path d="M3 9v6h4l5 5V4L7 9H3z" fill="#ffffff"/><line x1="16" y1="9" x2="21" y2="15" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="9" x2="16" y2="15" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/></svg>
+</button>
 <div id="stage"><div id="card">
 
 <div style="width:1000px; height:1400px; box-sizing:border-box; background:#bfe6f7; position:relative; overflow:hidden; font-family:'Baloo 2', sans-serif;">
@@ -226,7 +230,9 @@ var MELODY = [
 var BEAT = 0.42;
 var GAP = 1.4;
 var audioCtx = null;
+var masterGain = null;
 var musicStarted = false;
+var isMuted = false;
 
 function totalDuration() {
   var t = 0;
@@ -244,7 +250,7 @@ function scheduleLoop(startTime) {
     osc.type = "triangle";
     osc.frequency.value = freq;
     osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    gain.connect(masterGain);
     var noteLen = dur * 0.88;
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(0.18, t + 0.03);
@@ -267,12 +273,28 @@ function startMusic() {
   }
   musicStarted = true;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = isMuted ? 0 : 1;
+  masterGain.connect(audioCtx.destination);
   scheduleLoop(audioCtx.currentTime + 0.1);
 }
 
 startMusic();
 ["click", "touchstart", "keydown"].forEach(function (evt) {
   window.addEventListener(evt, startMusic, { once: false });
+});
+
+function setMuted(muted) {
+  isMuted = muted;
+  if (masterGain) { masterGain.gain.value = muted ? 0 : 1; }
+  document.getElementById("muteIconOn").style.display = muted ? "none" : "block";
+  document.getElementById("muteIconOff").style.display = muted ? "block" : "none";
+}
+
+document.getElementById("muteBtn").addEventListener("click", function (e) {
+  e.stopPropagation();
+  if (!musicStarted) { startMusic(); }
+  setMuted(!isMuted);
 });
 </script>
 </body>
